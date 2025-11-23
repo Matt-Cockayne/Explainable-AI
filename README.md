@@ -1,216 +1,355 @@
-# Explainable-AI: Comprehensive Medical Imaging Explainability Toolkit
+# MedXAI: Medical Image Explainability Toolkit
 
-A PyTorch-based toolkit for comparing and evaluating explainability methods in medical image classification. This repository provides a unified interface for various explainability techniques with quantitative evaluation metrics.
+A comprehensive PyTorch-based framework for explainable AI in medical imaging. MedXAI provides unified implementations of multiple explainability methods with quantitative evaluation metrics, specifically designed for medical image classification tasks.
 
-## Features
+## Overview
+
+MedXAI bridges the gap between deep learning model predictions and clinical interpretability by offering:
+
+- **Multiple XAI Methods**: Gradient-based, perturbation-based, and model-agnostic techniques
+- **Quantitative Evaluation**: Faithfulness and localization metrics for objective assessment
+- **Medical Dataset Support**: Pre-configured for MedMNIST datasets (DermaMNIST, PneumoniaMNIST, ChestMNIST)
+- **Interactive Interface**: Gradio-based web application for real-time explanation generation
+- **Tutorial Notebooks**: Step-by-step guides for each explainability method
+
+## Key Features
 
 ### Explainability Methods
 
-#### Gradient-based
-- **GradCAM**: Class Activation Mapping using gradients
-- **GradCAM++**: Improved weighted class activation mapping
-- **Integrated Gradients**: Path-based attribution method
+**Gradient-Based**
+- **GradCAM**: Gradient-weighted Class Activation Mapping - fast, class-specific visualizations
+- **GradCAM++**: Enhanced localization for multiple object instances
+- **Integrated Gradients**: Attribution through path integration from baseline
 
-#### Perturbation-based
-- **RISE**: Randomized Input Sampling for Explanation
-- **Occlusion**: Sliding window occlusion sensitivity analysis
-
-#### Attention-based
-- **Raw Attention Maps**: Direct visualization of attention weights from Vision Transformers
-
-#### Concept-based
-- **CBM Attributions**: Concept Bottleneck Model concept importance
+**Perturbation-Based**
+- **RISE**: Randomized Input Sampling for Explanation - model-agnostic importance estimation
+- **LIME**: Local Interpretable Model-agnostic Explanations - superpixel-based local approximations
+- **SHAP**: SHapley Additive exPlanations - game-theoretic feature attribution
 
 ### Evaluation Metrics
-- **Pointing Game**: Localization accuracy metric
-- **Deletion/Insertion Curves**: Faithfulness evaluation
-- **Faithfulness Assessment**: Correlation with model predictions
-- **Plausibility Assessment**: Agreement with human annotations
 
-### Visualization Tools
-- Side-by-side method comparisons
-- Quantitative metric dashboards
-- Interactive exploration interface
+- **Deletion AUC**: Measures confidence degradation when removing important pixels (lower is better)
+- **Insertion AUC**: Measures confidence improvement when adding important pixels (higher is better)
+- **Faithfulness Metrics**: Quantifies correlation between attributions and model behavior
+- **Pointing Game**: Evaluates localization accuracy against ground truth annotations
+
+### Visualization & Interface
+
+- **Comparative Visualizations**: Side-by-side heatmap overlays for method comparison
+- **Quantitative Dashboards**: Performance curves and metric summaries
+- **Web Interface**: Interactive Gradio application with real-time explanation generation
+- **Export Functionality**: Save results as high-resolution images and structured data
 
 ## Installation
 
+### Prerequisites
+- Python 3.8+
+- PyTorch 2.0+
+- CUDA-capable GPU (recommended)
+
+### Setup
+
 ```bash
+# Clone the repository
+git clone https://github.com/Matt-Cockayne/MedXAI.git
+cd MedXAI
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
+### Required Packages
+- `torch>=2.0.0`, `torchvision>=0.15.0`
+- `numpy>=1.24.0`, `scipy>=1.10.0`
+- `matplotlib>=3.7.0`, `opencv-python>=4.8.0`
+- `scikit-learn>=1.3.0`, `scikit-image>=0.21.0`
+- `lime>=0.2.0`, `shap>=0.42.0`
+- `medmnist>=3.0.0` (for medical datasets)
+- `gradio>=4.0.0` (for web interface)
+
 ## Quick Start
 
-```python
-from explainers import GradCAM, GradCAMPlusPlus, IntegratedGradients
-from metrics import pointing_game, deletion_insertion_curves
-from utils.visualization import compare_methods
-import torch
-from torchvision import models
+### Basic Usage
 
-# Load your model
-model = models.resnet50(pretrained=True)
-model.eval()
+```python
+import torch
+from utils import load_model, get_medical_dataset
+from explainers import GradCAM, SHAP, LIME
+from utils.visualization import visualize_comparison
+
+# Load pre-trained model and dataset
+model = load_model('resnet50', num_classes=7, device='cuda')
+test_dataset = get_medical_dataset('dermamnist', split='test')
+
+# Get a sample image
+image, label = test_dataset[0]
+image_batch = image.unsqueeze(0).to('cuda')
 
 # Initialize explainers
 explainers = {
-    'GradCAM': GradCAM(model, target_layer='layer4'),
-    'GradCAM++': GradCAMPlusPlus(model, target_layer='layer4'),
-    'IntegratedGradients': IntegratedGradients(model)
+    'GradCAM': GradCAM(model, 'layer4', device='cuda'),
+    'LIME': LIME(model, device='cuda'),
+    'SHAP': SHAP(model, device='cuda')
 }
-
-# Generate explanations
-image = torch.randn(1, 3, 224, 224)
-results = {}
-for name, explainer in explainers.items():
-    results[name] = explainer.explain(image, target_class=0)
-
-# Compare methods visually
-compare_methods(image, results, save_path='comparison.png')
-```
-
-## Directory Structure
-
-```
-Explainable-AI/
-├── README.md
-├── requirements.txt
-├── setup.py
-├── explainers/
-│   ├── __init__.py
-│   ├── base.py              # Base explainer class
-│   ├── gradcam.py           # GradCAM implementation
-│   ├── gradcam_plusplus.py  # GradCAM++ implementation
-│   ├── integrated_gradients.py
-│   ├── rise.py              # RISE implementation
-│   ├── occlusion.py         # Occlusion analysis
-│   ├── attention.py         # ViT attention extraction
-│   └── cbm.py               # CBM concept attribution
-├── metrics/
-│   ├── __init__.py
-│   ├── pointing_game.py
-│   ├── deletion_insertion.py
-│   ├── faithfulness.py
-│   └── plausibility.py
-├── utils/
-│   ├── __init__.py
-│   ├── visualization.py     # Plotting and comparison tools
-│   ├── data_utils.py        # Dataset loading utilities
-│   └── model_utils.py       # Model loading helpers
-├── interface/
-│   ├── app.py               # Interactive Gradio/Streamlit app
-│   └── callbacks.py
-├── notebooks/
-│   ├── 01_basic_usage.ipynb
-│   ├── 02_method_comparison.ipynb
-│   ├── 03_quantitative_evaluation.ipynb
-│   └── 04_medical_imaging_demo.ipynb
-├── examples/
-│   ├── compare_all_methods.py
-│   ├── evaluate_faithfulness.py
-│   └── medical_imaging_example.py
-└── tests/
-    ├── test_explainers.py
-    ├── test_metrics.py
-    └── test_visualization.py
-```
-
-## Usage Examples
-
-### Method Comparison
-
-```python
-from explainers import get_all_explainers
-from utils.visualization import visualize_comparison
-from metrics import evaluate_all_metrics
-
-# Load model and image
-model = load_model('resnet50')
-image, ground_truth = load_medical_image('path/to/image.png')
-
-# Get all explainers
-explainers = get_all_explainers(model)
 
 # Generate explanations
 explanations = {}
 for name, explainer in explainers.items():
-    explanations[name] = explainer.explain(image)
+    explanations[name] = explainer.explain(image_batch, target_class=label)
 
-# Evaluate with all metrics
-metrics_results = evaluate_all_metrics(
-    model, image, explanations, ground_truth
-)
-
-# Visualize
-visualize_comparison(image, explanations, metrics_results)
+# Visualize results
+fig = visualize_comparison(image, explanations)
 ```
 
-### Quantitative Evaluation
-
-```python
-from metrics import DeletionInsertion, PointingGame
-from utils.data_utils import get_medical_dataset
-
-# Load dataset
-dataset = get_medical_dataset('ISIC2019')
-
-# Initialize metrics
-di_metric = DeletionInsertion(model)
-pg_metric = PointingGame()
-
-# Evaluate over dataset
-results = {}
-for image, mask, label in dataset:
-    explanation = explainer.explain(image, target_class=label)
-    
-    results['deletion_auc'] = di_metric.deletion_score(image, explanation, label)
-    results['insertion_auc'] = di_metric.insertion_score(image, explanation, label)
-    results['pointing_acc'] = pg_metric.evaluate(explanation, mask)
-```
-
-### Interactive Interface
+### Launch Web Interface
 
 ```bash
-# Launch the interactive comparison tool
-python interface/app.py --model resnet50 --dataset ISIC2019
+# Start the interactive Gradio application
+python interface/app.py
+
+# Access at http://localhost:7860
 ```
 
-## Supported Models
+### Tutorial Notebooks
 
-- ResNet family (ResNet18, ResNet50, ResNet101)
-- Vision Transformers (ViT-B/16, ViT-L/16)
-- EfficientNet family
-- DenseNet family
-- Custom PyTorch models
+Explore detailed tutorials in the `notebooks/` directory:
 
-## Supported Datasets
+1. **GradCAM_Tutorial.ipynb** - Gradient-based visualization fundamentals
+2. **LIME_Tutorial.ipynb** - Perturbation-based local explanations
+3. **SHAP_Tutorial.ipynb** - Game-theoretic feature attribution
+4. **DermaMNIST_Explainability_Tutorial.ipynb** - Skin lesion classification
+5. **PneumoniaMNIST_Explainability_Tutorial.ipynb** - Pneumonia detection
+6. **ChestMNIST_Explainability_Tutorial.ipynb** - Multi-disease classification
 
-- ISIC (Skin lesion classification)
-- ChestX-ray14
-- CheXpert
-- Custom medical imaging datasets
-- ImageNet (for general validation)
+## Project Structure
+
+```
+MedXAI/
+├── interface/
+│   └── app.py                    # Gradio web application
+├── explainers/
+│   ├── __init__.py
+│   ├── gradcam.py               # GradCAM implementation
+│   ├── gradcam_plusplus.py      # GradCAM++ implementation
+│   ├── integrated_gradients.py  # Integrated Gradients
+│   ├── rise.py                  # RISE implementation
+│   ├── lime_explainer.py        # LIME wrapper
+│   └── shap_explainer.py        # SHAP wrapper
+├── metrics/
+│   ├── __init__.py
+│   ├── deletion_insertion.py    # Deletion/Insertion AUC
+│   └── faithfulness.py          # Faithfulness metrics
+├── utils/
+│   ├── __init__.py
+│   ├── visualization.py         # Plotting and comparison tools
+│   ├── data_utils.py            # Dataset loaders
+│   └── model_utils.py           # Model loading utilities
+├── notebooks/
+│   ├── GradCAM_Tutorial.ipynb
+│   ├── LIME_Tutorial.ipynb
+│   ├── SHAP_Tutorial.ipynb
+│   ├── DermaMNIST_Explainability_Tutorial.ipynb
+│   ├── PneumoniaMNIST_Explainability_Tutorial.ipynb
+│   └── ChestMNIST_Explainability_Tutorial.ipynb
+├── examples/
+│   └── tutorials/               # Standalone tutorial scripts
+├── requirements.txt
+└── README.md
+```
+
+## Advanced Usage
+
+### Method Comparison
+
+```python
+from explainers import GradCAM, GradCAMPlusPlus, IntegratedGradients, RISE
+from metrics import DeletionInsertion
+from utils.visualization import plot_deletion_insertion_curves
+
+# Initialize multiple explainers
+explainers = {
+    'GradCAM': GradCAM(model, 'layer4', device),
+    'GradCAM++': GradCAMPlusPlus(model, 'layer4', device),
+    'Integrated Gradients': IntegratedGradients(model, device),
+    'RISE': RISE(model, device, n_masks=1000)
+}
+
+# Generate explanations
+explanations = {}
+for name, explainer in explainers.items():
+    explanations[name] = explainer.explain(image_batch, target_class=label)
+
+# Quantitative evaluation
+di_metric = DeletionInsertion(model, device, n_steps=50)
+results = {}
+for name, heatmap in explanations.items():
+    results[name] = di_metric.evaluate(image_batch, heatmap, label)
+
+# Plot comparison curves
+plot_deletion_insertion_curves(results, save_path='metrics_comparison.png')
+```
+
+### Custom Dataset Integration
+
+```python
+from torch.utils.data import Dataset
+from torchvision import transforms
+
+class CustomMedicalDataset(Dataset):
+    def __init__(self, image_dir, transform=None):
+        self.image_paths = list(Path(image_dir).glob('*.png'))
+        self.transform = transform or transforms.Compose([
+            transforms.Resize(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                               std=[0.229, 0.224, 0.225])
+        ])
+    
+    def __getitem__(self, idx):
+        image = Image.open(self.image_paths[idx]).convert('RGB')
+        return self.transform(image)
+    
+    def __len__(self):
+        return len(self.image_paths)
+
+# Use with MedXAI
+dataset = CustomMedicalDataset('path/to/images')
+```
+
+### Batch Processing
+
+```python
+from pathlib import Path
+from tqdm import tqdm
+
+# Process multiple images
+output_dir = Path('results/batch_explanations')
+output_dir.mkdir(parents=True, exist_ok=True)
+
+for idx, (image, label) in enumerate(tqdm(test_dataset)):
+    image_batch = image.unsqueeze(0).to(device)
+    
+    # Generate explanations
+    explanations = {}
+    for name, explainer in explainers.items():
+        explanations[name] = explainer.explain(image_batch, target_class=label)
+    
+    # Save visualization
+    fig = visualize_comparison(image, explanations)
+    fig.savefig(output_dir / f'sample_{idx:04d}.png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+```
+
+## Supported Architectures & Datasets
+
+### Models
+- **ResNet Family**: ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
+- **Vision Transformers**: ViT-B/16, ViT-L/16 (attention-based explanations)
+- **EfficientNet**: EfficientNet-B0 through B7
+- **DenseNet**: DenseNet121, DenseNet169, DenseNet201
+- **Custom Models**: Any PyTorch CNN with accessible convolutional layers
+
+### Medical Imaging Datasets
+
+**MedMNIST Suite** (via `medmnist` package):
+- **DermaMNIST**: 7-class skin lesion classification (28×28 RGB)
+- **PneumoniaMNIST**: Binary pneumonia detection (28×28 grayscale)
+- **ChestMNIST**: 14-class thoracic disease classification (28×28 grayscale)
+- **OrganMNIST**: 11-class organ segmentation
+- **PathMNIST**: 9-class histopathology classification
+
+All datasets are automatically downloaded and preprocessed with standardized transforms.
+
+### Performance Characteristics
+
+| Method | Speed | Resolution | Model Access | Best Use Case |
+|--------|-------|------------|--------------|---------------|
+| GradCAM | Very Fast (~10ms) | Feature map size | Gradients required | Quick CNN explanations |
+| GradCAM++ | Fast (~15ms) | Feature map size | Gradients required | Multiple object localization |
+| Integrated Gradients | Fast (~50ms) | Input size | Gradients required | Attribution completeness |
+| RISE | Slow (~30s) | Input size | Black-box | Model-agnostic |
+| LIME | Very Slow (~60s) | Superpixel | Black-box | Local interpretability |
+| SHAP | Fast (~100ms) | Input size | Gradients preferred | Consistent attributions |
+
+## Evaluation Metrics
+
+### Deletion AUC
+Measures the degradation in model confidence as the most important pixels (according to the explanation) are progressively removed. Lower values indicate better explanations, as important pixels should strongly influence predictions.
+
+### Insertion AUC  
+Measures the improvement in model confidence as the most important pixels are progressively added to a blank baseline. Higher values indicate better explanations, demonstrating that identified regions are sufficient for accurate classification.
+
+### Faithfulness Metrics
+Quantifies how well explanations reflect the model's actual decision-making process through correlation between attribution values and output changes under perturbations.
+
+### Usage Example
+
+```python
+from metrics import DeletionInsertion, FaithfulnessMetrics
+
+# Initialize metrics
+di_metric = DeletionInsertion(model, device, n_steps=50)
+faith_metric = FaithfulnessMetrics(model, device)
+
+# Evaluate explanations
+di_results = di_metric.evaluate(image_batch, heatmap, target_class)
+print(f"Deletion AUC: {di_results['deletion_auc']:.3f}")
+print(f"Insertion AUC: {di_results['insertion_auc']:.3f}")
+
+faith_results = faith_metric.evaluate_all(image_batch, heatmap, target_class)
+for metric_name, value in faith_results.items():
+    print(f"{metric_name}: {value:.3f}")
+```
+
+## Clinical Interpretation Guidelines
+
+When applying XAI methods to medical imaging:
+
+1. **Validate with Domain Experts**: Always have clinicians review explanations for clinical relevance
+2. **Compare Multiple Methods**: Use at least 2-3 different XAI techniques to identify consistent patterns
+3. **Consider Context**: Explanations should align with known disease manifestations and anatomical structures
+4. **Assess Quantitatively**: Use deletion/insertion metrics to validate explanation quality objectively
+5. **Document Limitations**: Clearly communicate when model focus deviates from clinical expectations
+
+### Common Pitfalls
+- **Spurious Correlations**: Models may focus on artifacts or metadata rather than pathology
+- **Resolution Limitations**: Low-resolution heatmaps may miss fine-grained features
+- **Class Confusion**: Ensure target class is specified correctly for multi-class problems
+- **Batch Effects**: Dataset-specific biases may influence what models learn to focus on
 
 ## Citation
 
 If you use this toolkit in your research, please cite:
 
 ```bibtex
-@software{explainable_ai_toolkit,
+@software{MedXAI,
   author = {Matthew Cockayne},
-  title = {Explainable-AI: Comprehensive Medical Imaging Explainability Toolkit},
+  title = {MedXAI: Medical Image Explainability Toolkit},
   year = {2025},
-  url = {https://github.com/Matt-Cockayne/Explainable-AI}
+  url = {https://github.com/Matt-Cockayne/MedXAI}
 }
 ```
 
 ## License
 
-MIT License
+MIT License - See LICENSE file for details
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Areas for improvement:
+- Additional explainability methods (e.g., Attention Rollout, LayerCAM)
+- More evaluation metrics (e.g., pointing game, sensitivity-n)
+- Support for 3D medical imaging
+- Integration with clinical DICOM workflows
 
-## Related Work
+Please submit issues or pull requests on GitHub.
 
-This toolkit builds upon and extends the CAM-based methods from the Classification-to-Segmentation project, providing a comprehensive comparison framework for explainability research in medical imaging.
+## Acknowledgments
+
+This toolkit builds upon foundational work in explainable AI and medical imaging:
+- GradCAM paper by Selvaraju et al. (2017)
+- LIME by Ribeiro et al. (2016)
+- SHAP by Lundberg & Lee (2017)
+- MedMNIST dataset collection by Yang et al. (2021)
+
+Developed as part of PhD research in trustworthy AI for healthcare applications.

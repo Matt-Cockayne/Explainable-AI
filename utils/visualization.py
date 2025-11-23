@@ -63,7 +63,7 @@ def overlay_heatmap(
     """
     # Convert heatmap to numpy and squeeze any extra dimensions
     if isinstance(heatmap, torch.Tensor):
-        heatmap = heatmap.cpu().numpy()
+        heatmap = heatmap.detach().cpu().numpy()
     heatmap = np.squeeze(heatmap)  # Remove all singleton dimensions
     
     # Convert image to numpy
